@@ -97,6 +97,7 @@ Set these in your deployment platform (Render, Railway, Heroku, etc.):
 - `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM` - Email service config
 - `FIREBASE_SERVICE_ACCOUNT` - (Optional) Firebase credentials as JSON string
 - `FIREBASE_DATABASE_URL` - (Optional) Firebase Realtime Database URL
+- `NODE_OPTIONS` - Set to `--max-old-space-size=512` for free tier deployments
 
 ### Build Command
 ```bash
@@ -107,6 +108,12 @@ npm install && npm run build
 ```bash
 npm run start:prod
 ```
+
+### Memory Optimization
+If you encounter "JavaScript heap out of memory" errors during deployment:
+1. Make sure `NODE_OPTIONS=--max-old-space-size=512` is set in environment variables
+2. Use the free tier with at least 512MB RAM
+3. Consider using Railway or Render which handle Node.js builds better
 
 **Note**: The app will automatically run `prisma generate` during `npm install` via the `postinstall` script.
 
