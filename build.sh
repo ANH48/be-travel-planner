@@ -1,16 +1,21 @@
 #!/bin/bash
-# Build script optimized for low memory environments
+# Ultra-minimal build for <512MB environments
 
-echo "🔧 Setting memory limit..."
-export NODE_OPTIONS="--max-old-space-size=380"
+echo "🔧 Setting strict memory limit..."
+export NODE_OPTIONS="--max-old-space-size=300 --gc-global --optimize-for-size"
 
-echo "📦 Installing dependencies (skipping optional)..."
-npm ci --only=production --no-optional
+echo "🧹 Cleaning..."
+rm -rf node_modules/.cache dist
 
-echo "🔨 Generating Prisma Client..."
-npx prisma generate --no-engine
+echo "📦 Installing minimal dependencies..."
+# Install only what we absolutely need
+npm install --production --no-optional --prefer-offline --no-audit --no-fund
 
-echo "🏗️  Building application with TypeScript..."
-npx tsc -p tsconfig.build.json
+echo "🔨 Generating Prisma..."
+npx prisma generate --no-engine --no-hints
 
-echo "✅ Build complete!"
+echo "🏗️ Compiling (using tsc directly)..."
+# Use plain tsc to avoid NestJS CLI overhead
+npx tsc -p tsconfig.build.json --diagnostics
+
+echo "✅ Done!"

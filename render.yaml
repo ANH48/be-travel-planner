@@ -3,7 +3,12 @@ services:
     name: travel-planner-api
     env: node
     plan: free
-    buildCommand: bash build.sh
+    buildCommand: |
+      echo "Setting swap space..."
+      export NODE_OPTIONS="--max-old-space-size=300 --gc-global"
+      npm install --production --no-optional --prefer-offline --no-audit --no-fund
+      npx prisma generate --no-engine --no-hints
+      npx tsc -p tsconfig.build.json
     startCommand: npm run start:prod
     envVars:
       - key: NODE_ENV
