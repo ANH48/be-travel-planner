@@ -86,30 +86,43 @@ The API will be available at `http://localhost:3001/api`
 
 ## Deployment
 
-### ⚠️ Important: Memory Constraints
+### 🚀 Quick Start: Railway.app (RECOMMENDED)
 
-This NestJS application requires at least **512MB RAM** during build. If you're experiencing "JavaScript heap out of memory" errors:
+**The easiest and most reliable way to deploy this backend is Railway.app.**
 
-**Recommended Platforms (Better for free tier):**
-1. **Railway.app** - 8GB RAM during build, $5/month after trial
-2. **Fly.io** - Better memory handling, generous free tier
-3. **Koyeb** - 2GB RAM free tier
-4. **Cyclic.sh** - Serverless, no build memory limits
+👉 **[Complete step-by-step guide: RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)** 👈
 
-**Not Recommended:**
-- Render Free Tier (512MB total) - Too tight for NestJS builds
+**Why Railway?**
+- ✅ **8GB build RAM** - no memory issues!
+- ✅ **$5 free trial credit**
+- ✅ **Auto-deploy from GitHub**
+- ✅ **~$5-10/month** after trial
+- ✅ **10-minute setup**
 
-### Optimized for Low Memory Environments (<512MB RAM)
+**Quick Steps:**
+1. Sign up at [railway.app](https://railway.app)
+2. Deploy from GitHub repo: `ANH48/be-travel-planner`
+3. Add environment variables
+4. Done! 🎉
 
-This backend has been optimized to build and run on free-tier hosting with limited memory (512MB or less).
+---
 
-**Key Optimizations:**
-- Firebase Admin SDK is now **optional** (saves ~150MB during build)
-- Build uses direct TypeScript compilation instead of NestJS CLI
-- Source maps and declarations disabled
-- Memory limit set to 380MB during build
+### ⚠️ Platform Compatibility
 
-### Option 1: Use the build.sh script (Recommended for Render)
+| Platform | Free Tier RAM | Build RAM | Status |
+|----------|---------------|-----------|--------|
+| **Railway.app** | Trial ($5) | **8GB** | ⭐ **RECOMMENDED** |
+| **Fly.io** | 256MB | Sufficient | ✅ Works well |
+| **Koyeb** | 2GB | 2GB | ✅ Works well |
+| **Render.com** | 512MB | **512MB** | ❌ **TOO LOW - WILL FAIL** |
+
+**This NestJS app requires >512MB RAM to build.** Render's free tier is incompatible despite all optimizations.
+
+---
+
+### Alternative Deployment Options
+
+#### Option 1: Use the build.sh script (For 1GB+ RAM platforms)
 
 In your deployment platform, set:
 - **Build Command**: `bash build.sh`
