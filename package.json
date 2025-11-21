@@ -43,13 +43,13 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "firebase-admin": "^13.6.0"
   },
   "optionalDependencies": {
     "@prisma/extension-accelerate": "^2.0.2",
     "@types/cookie-parser": "^1.4.10",
-    "@types/nodemailer": "^7.0.4",
-    "firebase-admin": "^13.6.0"
+    "@types/nodemailer": "^7.0.4"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
