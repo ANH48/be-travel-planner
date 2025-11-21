@@ -24,7 +24,7 @@ Backend API for Travel Expense Planner built with NestJS, Prisma, and PostgreSQL
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL 14+
+- PostgreSQL 14+ (or use Prisma Accelerate)
 - npm or yarn
 
 ### Installation
@@ -39,12 +39,24 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env` and configure your database connection:
+Edit `.env` and configure your variables:
 ```env
-DATABASE_URL="postgresql://username:password@localhost:5432/travel_planner?schema=public"
+DATABASE_URL="your-database-url"
 JWT_SECRET="your-super-secret-jwt-key"
 JWT_EXPIRES_IN="7d"
 PORT=3001
+FRONTEND_URL="http://localhost:3000"
+
+# Email Configuration
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+EMAIL_FROM=Travel Expense Planner <your-email@gmail.com>
+
+# Firebase (Optional - for push notifications)
+FIREBASE_SERVICE_ACCOUNT='{"type":"service_account",...}'
+FIREBASE_DATABASE_URL=https://your-project.firebaseio.com
 ```
 
 3. Setup database:
@@ -52,7 +64,7 @@ PORT=3001
 # Generate Prisma Client
 npm run prisma:generate
 
-# Run migrations
+# Run migrations (if using direct database)
 npm run prisma:migrate
 
 # (Optional) Open Prisma Studio
@@ -71,6 +83,32 @@ npm run start:prod
 ```
 
 The API will be available at `http://localhost:3001/api`
+
+## Deployment
+
+### Environment Variables Required
+
+Set these in your deployment platform (Render, Railway, Heroku, etc.):
+
+- `DATABASE_URL` - Prisma Accelerate connection string or direct PostgreSQL URL
+- `JWT_SECRET` - Strong secret key for JWT tokens
+- `JWT_EXPIRES_IN` - Token expiration (e.g., "7d")
+- `FRONTEND_URL` - Your frontend URL for CORS
+- `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM` - Email service config
+- `FIREBASE_SERVICE_ACCOUNT` - (Optional) Firebase credentials as JSON string
+- `FIREBASE_DATABASE_URL` - (Optional) Firebase Realtime Database URL
+
+### Build Command
+```bash
+npm install && npm run build
+```
+
+### Start Command
+```bash
+npm run start:prod
+```
+
+**Note**: The app will automatically run `prisma generate` during `npm install` via the `postinstall` script.
 
 ## API Endpoints
 
