@@ -86,9 +86,34 @@ The API will be available at `http://localhost:3001/api`
 
 ## Deployment
 
+### Option 1: Direct Deployment (Render, Railway, etc.)
+
+If you encounter memory issues, try these optimized build commands:
+
+**Build Command:**
+```bash
+NODE_OPTIONS="--max-old-space-size=460" npm install && NODE_OPTIONS="--max-old-space-size=460" npm run build:tsc
+```
+
+**Start Command:**
+```bash
+npm run start:prod
+```
+
+### Option 2: Docker Deployment (Recommended for Memory Issues)
+
+Use the included `Dockerfile` for deployment on platforms that support Docker:
+
+```bash
+docker build -t travel-planner-api .
+docker run -p 3001:3001 --env-file .env travel-planner-api
+```
+
+For Docker-based platforms (Fly.io, Railway with Docker, etc.), they will automatically use the Dockerfile.
+
 ### Environment Variables Required
 
-Set these in your deployment platform (Render, Railway, Heroku, etc.):
+Set these in your deployment platform:
 
 - `DATABASE_URL` - Prisma Accelerate connection string or direct PostgreSQL URL
 - `JWT_SECRET` - Strong secret key for JWT tokens
@@ -97,23 +122,21 @@ Set these in your deployment platform (Render, Railway, Heroku, etc.):
 - `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM` - Email service config
 - `FIREBASE_SERVICE_ACCOUNT` - (Optional) Firebase credentials as JSON string
 - `FIREBASE_DATABASE_URL` - (Optional) Firebase Realtime Database URL
-- `NODE_OPTIONS` - Set to `--max-old-space-size=512` for free tier deployments
 
-### Build Command
-```bash
-npm install && npm run build
-```
+### Troubleshooting Memory Issues
 
-### Start Command
-```bash
-npm run start:prod
-```
+If you still encounter "JavaScript heap out of memory" errors:
 
-### Memory Optimization
-If you encounter "JavaScript heap out of memory" errors during deployment:
-1. Make sure `NODE_OPTIONS=--max-old-space-size=512` is set in environment variables
-2. Use the free tier with at least 512MB RAM
-3. Consider using Railway or Render which handle Node.js builds better
+1. **Use Docker deployment** (recommended) - The Dockerfile is optimized for low memory environments
+2. **Try Railway or Fly.io** - They handle Node.js builds better than Render on free tier
+3. **Use build:tsc instead of build** - Direct TypeScript compilation uses less memory
+4. **Upgrade to a paid plan** - Free tiers usually have 512MB RAM which is tight for NestJS builds
+
+### Build Commands Comparison
+
+- **Standard**: `npm run build` - Uses NestJS CLI (more memory)
+- **Optimized**: `npm run build:tsc` - Uses TypeScript directly (less memory)
+- **With Webpack**: `npm run build -- --webpack` - Can be faster but uses more memory initially
 
 **Note**: The app will automatically run `prisma generate` during `npm install` via the `postinstall` script.
 
