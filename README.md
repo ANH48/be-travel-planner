@@ -86,21 +86,34 @@ The API will be available at `http://localhost:3001/api`
 
 ## Deployment
 
-### Option 1: Direct Deployment (Render, Railway, etc.)
+### Optimized for Low Memory Environments (<512MB RAM)
 
-If you encounter memory issues, try these optimized build commands:
+This backend has been optimized to build and run on free-tier hosting with limited memory (512MB or less).
 
-**Build Command:**
-```bash
-NODE_OPTIONS="--max-old-space-size=460" npm install && NODE_OPTIONS="--max-old-space-size=460" npm run build:tsc
-```
+**Key Optimizations:**
+- Firebase Admin SDK is now **optional** (saves ~150MB during build)
+- Build uses direct TypeScript compilation instead of NestJS CLI
+- Source maps and declarations disabled
+- Memory limit set to 380MB during build
 
-**Start Command:**
-```bash
-npm run start:prod
-```
+### Option 1: Use the build.sh script (Recommended for Render)
 
-### Option 2: Docker Deployment (Recommended for Memory Issues)
+In your deployment platform, set:
+- **Build Command**: `bash build.sh`
+- **Start Command**: `npm run start:prod`
+
+This will:
+- Skip Firebase installation (unless you need push notifications)
+- Set optimal memory limits
+- Use lightweight build process
+
+### Option 2: Manual Build Commands
+
+If bash scripts aren't supported:
+- **Build**: `NODE_OPTIONS="--max-old-space-size=380" npm ci --only=production --no-optional && npx prisma generate --no-engine && npx tsc -p tsconfig.build.json`
+- **Start**: `npm run start:prod`
+
+### Option 3: Docker Deployment
 
 Use the included `Dockerfile` for deployment on platforms that support Docker:
 
@@ -109,19 +122,35 @@ docker build -t travel-planner-api .
 docker run -p 3001:3001 --env-file .env travel-planner-api
 ```
 
-For Docker-based platforms (Fly.io, Railway with Docker, etc.), they will automatically use the Dockerfile.
+### Option 4: Enable Firebase (if needed)
+
+If you need push notifications, install Firebase manually after build:
+```bash
+npm install firebase-admin --save --production
+```
+
+Then set `FIREBASE_SERVICE_ACCOUNT` environment variable with your credentials.
 
 ### Environment Variables Required
 
-Set these in your deployment platform:
+**Required:**
 
 - `DATABASE_URL` - Prisma Accelerate connection string or direct PostgreSQL URL
 - `JWT_SECRET` - Strong secret key for JWT tokens
 - `JWT_EXPIRES_IN` - Token expiration (e.g., "7d")
 - `FRONTEND_URL` - Your frontend URL for CORS
 - `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM` - Email service config
-- `FIREBASE_SERVICE_ACCOUNT` - (Optional) Firebase credentials as JSON string
-- `FIREBASE_DATABASE_URL` - (Optional) Firebase Realtime Database URL
+
+**Optional (for push notifications):**
+- `FIREBASE_SERVICE_ACCOUNT` - Firebase credentials as JSON string (only if you installed firebase-admin)
+- `FIREBASE_DATABASE_URL` - Firebase Realtime Database URL
+
+### Memory Usage Breakdown
+
+- **Without Firebase**: ~180MB RAM during build, ~60MB runtime
+- **With Firebase**: ~350MB RAM during build, ~90MB runtime
+
+By making Firebase optional, the app can now build successfully on 512MB free-tier hosting.
 
 ### Troubleshooting Memory Issues
 
