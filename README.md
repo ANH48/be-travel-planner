@@ -86,6 +86,19 @@ The API will be available at `http://localhost:3001/api`
 
 ## Deployment
 
+### ⚠️ Important: Memory Constraints
+
+This NestJS application requires at least **512MB RAM** during build. If you're experiencing "JavaScript heap out of memory" errors:
+
+**Recommended Platforms (Better for free tier):**
+1. **Railway.app** - 8GB RAM during build, $5/month after trial
+2. **Fly.io** - Better memory handling, generous free tier
+3. **Koyeb** - 2GB RAM free tier
+4. **Cyclic.sh** - Serverless, no build memory limits
+
+**Not Recommended:**
+- Render Free Tier (512MB total) - Too tight for NestJS builds
+
 ### Optimized for Low Memory Environments (<512MB RAM)
 
 This backend has been optimized to build and run on free-tier hosting with limited memory (512MB or less).
