@@ -40,6 +40,7 @@ export class EmailService {
       'templates',
       `${templateName}.html`,
     );
+
     return fs.readFileSync(templatePath, 'utf-8');
   }
 

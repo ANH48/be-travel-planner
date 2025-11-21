@@ -16,6 +16,11 @@ COPY . .
 # Generate Prisma client and build the application
 RUN npm run build:prod
 
+# ---- Copy email templates manually into dist ----
+# Assuming templates are in src/email/templates
+COPY src/email/templates ./dist/email/templates
+
+
 # Production stage
 FROM node:20-alpine AS production
 
