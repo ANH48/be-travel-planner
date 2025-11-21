@@ -2,20 +2,43 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { ServiceAccount } from 'firebase-admin';
 import * as path from 'path';
+import * as fs from 'fs';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
   private firebaseApp: admin.app.App;
 
   onModuleInit() {
-    const serviceAccount = require(path.join(
-      __dirname,
-      '../../travel-planer-b5efb-firebase-adminsdk-fbsvc-db08fb9029.json',
-    )) as ServiceAccount;
+    let serviceAccount: ServiceAccount;
+
+    // Try to load from environment variable first (for production)
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      try {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        console.log('✅ Firebase credentials loaded from environment variable');
+      } catch (error) {
+        console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', error);
+        throw error;
+      }
+    } else {
+      // Fallback to file (for local development)
+      const credentialsPath = path.join(
+        __dirname,
+        '../../travel-planer-b5efb-firebase-adminsdk-fbsvc-db08fb9029.json',
+      );
+      
+      if (fs.existsSync(credentialsPath)) {
+        serviceAccount = require(credentialsPath) as ServiceAccount;
+        console.log('✅ Firebase credentials loaded from file');
+      } else {
+        console.warn('⚠️ Firebase credentials not found. Firebase features will be disabled.');
+        return;
+      }
+    }
 
     this.firebaseApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      databaseURL: 'https://travel-planer-b5efb-default-rtdb.asia-southeast1.firebasedatabase.app',
+      databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://travel-planer-b5efb-default-rtdb.asia-southeast1.firebasedatabase.app',
     });
 
     console.log('✅ Firebase Admin initialized with Realtime Database');
@@ -29,6 +52,11 @@ export class FirebaseService implements OnModuleInit {
       data?: Record<string, string>;
     },
   ): Promise<string> {
+    if (!this.firebaseApp) {
+      console.warn('Firebase not initialized. Skipping notification.');
+      return 'FIREBASE_NOT_INITIALIZED';
+    }
+    
     try {
       const message: admin.messaging.Message = {
         notification: {
