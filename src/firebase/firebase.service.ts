@@ -1,14 +1,25 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import * as admin from 'firebase-admin';
 import { ServiceAccount } from 'firebase-admin';
 import * as path from 'path';
 import * as fs from 'fs';
 
+let admin: any;
+try {
+  admin = require('firebase-admin');
+} catch (error) {
+  console.warn('⚠️ firebase-admin not installed. Push notifications will be disabled.');
+}
+
 @Injectable()
 export class FirebaseService implements OnModuleInit {
-  private firebaseApp: admin.app.App;
+  private firebaseApp: any;
 
   onModuleInit() {
+    if (!admin) {
+      console.warn('⚠️ Firebase Admin SDK not available. Skipping initialization.');
+      return;
+    }
+
     let serviceAccount: ServiceAccount;
 
     // Try to load from environment variable first (for production)
@@ -18,7 +29,7 @@ export class FirebaseService implements OnModuleInit {
         console.log('✅ Firebase credentials loaded from environment variable');
       } catch (error) {
         console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', error);
-        throw error;
+        return;
       }
     } else {
       // Fallback to file (for local development)
@@ -36,12 +47,16 @@ export class FirebaseService implements OnModuleInit {
       }
     }
 
-    this.firebaseApp = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://travel-planer-b5efb-default-rtdb.asia-southeast1.firebasedatabase.app',
-    });
+    try {
+      this.firebaseApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://travel-planer-b5efb-default-rtdb.asia-southeast1.firebasedatabase.app',
+      });
 
-    console.log('✅ Firebase Admin initialized with Realtime Database');
+      console.log('✅ Firebase Admin initialized with Realtime Database');
+    } catch (error) {
+      console.error('Failed to initialize Firebase:', error);
+    }
   }
 
   async sendNotification(
@@ -52,13 +67,13 @@ export class FirebaseService implements OnModuleInit {
       data?: Record<string, string>;
     },
   ): Promise<string> {
-    if (!this.firebaseApp) {
+    if (!this.firebaseApp || !admin) {
       console.warn('Firebase not initialized. Skipping notification.');
       return 'FIREBASE_NOT_INITIALIZED';
     }
     
     try {
-      const message: admin.messaging.Message = {
+      const message: any = {
         notification: {
           title: notification.title,
           body: notification.body,
@@ -83,9 +98,14 @@ export class FirebaseService implements OnModuleInit {
       body: string;
       data?: Record<string, string>;
     },
-  ): Promise<admin.messaging.BatchResponse> {
+  ): Promise<any> {
+    if (!this.firebaseApp || !admin) {
+      console.warn('Firebase not initialized. Skipping notifications.');
+      return { successCount: 0, failureCount: 0 };
+    }
+    
     try {
-      const message: admin.messaging.MulticastMessage = {
+      const message: any = {
         notification: {
           title: notification.title,
           body: notification.body,
@@ -111,8 +131,13 @@ export class FirebaseService implements OnModuleInit {
       data?: Record<string, string>;
     },
   ): Promise<string> {
+    if (!this.firebaseApp || !admin) {
+      console.warn('Firebase not initialized. Skipping notification.');
+      return 'FIREBASE_NOT_INITIALIZED';
+    }
+    
     try {
-      const message: admin.messaging.Message = {
+      const message: any = {
         notification: {
           title: notification.title,
           body: notification.body,
@@ -145,6 +170,11 @@ export class FirebaseService implements OnModuleInit {
       createdAt?: number;
     },
   ): Promise<void> {
+    if (!this.firebaseApp || !admin) {
+      console.warn('Firebase not initialized. Skipping database write.');
+      return;
+    }
+    
     try {
       const db = admin.database();
       const notificationRef = db.ref(`notifications/${userId}/${notification.id}`);
@@ -166,6 +196,11 @@ export class FirebaseService implements OnModuleInit {
    * Mark notification as read in Realtime Database
    */
   async markNotificationAsRead(userId: string, notificationId: string): Promise<void> {
+    if (!this.firebaseApp || !admin) {
+      console.warn('Firebase not initialized. Skipping operation.');
+      return;
+    }
+    
     try {
       const db = admin.database();
       const notificationRef = db.ref(`notifications/${userId}/${notificationId}`);
@@ -186,6 +221,11 @@ export class FirebaseService implements OnModuleInit {
    * Delete notification from Realtime Database
    */
   async deleteNotificationFromDatabase(userId: string, notificationId: string): Promise<void> {
+    if (!this.firebaseApp || !admin) {
+      console.warn('Firebase not initialized. Skipping operation.');
+      return;
+    }
+    
     try {
       const db = admin.database();
       const notificationRef = db.ref(`notifications/${userId}/${notificationId}`);
@@ -203,6 +243,11 @@ export class FirebaseService implements OnModuleInit {
    * Get all notifications for a user
    */
   async getUserNotifications(userId: string): Promise<any[]> {
+    if (!this.firebaseApp || !admin) {
+      console.warn('Firebase not initialized. Returning empty array.');
+      return [];
+    }
+    
     try {
       const db = admin.database();
       const notificationsRef = db.ref(`notifications/${userId}`);
@@ -229,6 +274,11 @@ export class FirebaseService implements OnModuleInit {
    * Create custom Firebase token for user authentication
    */
   async createCustomToken(userId: string): Promise<string> {
+    if (!this.firebaseApp || !admin) {
+      console.warn('Firebase not initialized. Cannot create custom token.');
+      throw new Error('Firebase not available');
+    }
+    
     try {
       const customToken = await admin.auth().createCustomToken(userId);
       console.log(`✅ Custom token created for user ${userId}`);

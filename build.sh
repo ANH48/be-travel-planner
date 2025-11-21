@@ -2,10 +2,10 @@
 # Build script optimized for low memory environments
 
 echo "🔧 Setting memory limit..."
-export NODE_OPTIONS="--max-old-space-size=460"
+export NODE_OPTIONS="--max-old-space-size=380"
 
-echo "📦 Installing dependencies..."
-npm ci --only=production
+echo "📦 Installing dependencies (skipping optional)..."
+npm ci --only=production --no-optional
 
 echo "🔨 Generating Prisma Client..."
 npx prisma generate --no-engine
