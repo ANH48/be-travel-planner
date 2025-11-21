@@ -3,10 +3,8 @@ services:
     name: travel-planner-api
     env: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: NODE_OPTIONS="--max-old-space-size=460" npm install && NODE_OPTIONS="--max-old-space-size=460" npm run build:tsc
     startCommand: npm run start:prod
     envVars:
       - key: NODE_ENV
         value: production
-      - key: NODE_OPTIONS
-        value: --max-old-space-size=512
