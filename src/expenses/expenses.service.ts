@@ -16,6 +16,7 @@ import {
   getUserMemberId,
 } from '../common/helpers/trip-access.helper';
 import { SettlementsService } from '../settlements/settlements.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ExpensesService {
@@ -23,6 +24,7 @@ export class ExpensesService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => SettlementsService))
     private settlementsService: SettlementsService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -104,6 +106,35 @@ export class ExpensesService {
 
     // Trigger settlements recalculation
     await this.settlementsService.recalculateSettlements(tripId);
+
+    // Send notifications to all trip members except the creator
+    const tripMembers = await this.prisma.tripMember.findMany({
+      where: { tripId, userId: { not: null } }, // Only notify registered users
+    });
+
+    const creatorUserId = trip.members.find(m => m.id === createdById)?.userId;
+
+    for (const member of tripMembers) {
+      if (member.userId && member.userId !== creatorUserId) {
+        try {
+          await this.notificationsService.createNotification(
+            member.userId,
+            'EXPENSE_ADDED',
+            'New Expense Added',
+            `${expense.createdBy?.name || 'Someone'} added a new expense: ${expense.description} (${expense.amount} ₫)`,
+            {
+              tripId,
+              expenseId: expense.id,
+              amount: Number(expense.amount),
+              description: expense.description,
+              createdBy: expense.createdBy?.name,
+            },
+          );
+        } catch (error) {
+          console.error(`Failed to send notification to user ${member.userId}:`, error);
+        }
+      }
+    }
 
     return ExpenseResponseDto.fromPrisma(expense);
   }

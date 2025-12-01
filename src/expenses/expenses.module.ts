@@ -6,9 +6,10 @@ import {
 } from './expenses.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { SettlementsModule } from '../settlements/settlements.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => SettlementsModule)],
+  imports: [PrismaModule, forwardRef(() => SettlementsModule), NotificationsModule],
   controllers: [ExpensesController, TripExpensesController],
   providers: [ExpensesService],
   exports: [ExpensesService],

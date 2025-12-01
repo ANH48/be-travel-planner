@@ -183,6 +183,7 @@ enum InvitationStatus {
 enum NotificationType {
   TRIP_INVITATION
   EXPENSE_ADDED
+  ITINERARY_ADDED
   MEMBER_JOINED
   INVITATION_CANCELLED
 }

@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateItineraryDto, UpdateItineraryDto } from './dto/itinerary.dto';
 import {
   canAccessTrip,
@@ -14,7 +15,10 @@ import {
 
 @Injectable()
 export class ItineraryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async create(
     tripId: string,
@@ -58,7 +62,7 @@ export class ItineraryService {
       throw new BadRequestException('endTime must be after startTime');
     }
 
-    return this.prisma.itineraryItem.create({
+    const itineraryItem = await this.prisma.itineraryItem.create({
       data: {
         tripId,
         createdById,
@@ -71,6 +75,40 @@ export class ItineraryService {
         description: dto.description,
       },
     });
+
+    // Send notifications to all trip members except the creator
+    const tripMembers = await this.prisma.tripMember.findMany({
+      where: { tripId, userId: { not: null } }, // Only notify registered users
+    });
+
+    // Get the creator's userId directly from the TripMember
+    const creatorMember = await this.prisma.tripMember.findUnique({
+      where: { id: createdById },
+    });
+    const creatorUserId = creatorMember?.userId;
+
+    for (const member of tripMembers) {
+      if (member.userId && member.userId !== creatorUserId) {
+        await this.notificationsService.createNotification(
+          member.userId,
+          'ITINERARY_ADDED',
+          'New Activity Added',
+          `${creatorMember?.name || 'Someone'} added a new activity: ${dto.activity}${dto.location ? ` at ${dto.location}` : ''}`,
+          {
+            tripId,
+            tripName: trip.name,
+            itineraryId: itineraryItem.id,
+            activity: dto.activity,
+            location: dto.location,
+            date: dto.date,
+            startTime: dto.startTime,
+            createdBy: creatorMember?.name,
+          },
+        );
+      }
+    }
+
+    return itineraryItem;
   }
 
   async findAll(tripId: string) {
