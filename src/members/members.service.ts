@@ -9,7 +9,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMemberDto, UpdateMemberDto } from './dto/member.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
-import { canModifyTrip } from '../common/helpers/trip-access.helper';
+import { PermissionGrpcClient } from '../grpc-clients/permission-grpc.client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { NotificationType, InvitationStatus } from '@prisma/client';
@@ -21,6 +21,7 @@ export class MembersService {
     @Inject(forwardRef(() => NotificationsService))
     private notificationsService: NotificationsService,
     private firebaseService: FirebaseService,
+    private permissionClient: PermissionGrpcClient,
   ) {}
 
   /**
@@ -51,7 +52,8 @@ export class MembersService {
       throw new NotFoundException('Trip not found');
     }
 
-    if (!canModifyTrip(userId, trip)) {
+    const modifyCheck = await this.permissionClient.checkTripModify(userId, tripId);
+    if (!modifyCheck.can_modify) {
       throw new ForbiddenException(
         'Only the trip creator can invite members',
       );
@@ -390,7 +392,8 @@ export class MembersService {
       throw new NotFoundException('Trip not found');
     }
 
-    if (!canModifyTrip(userId, trip)) {
+    const modifyCheck = await this.permissionClient.checkTripModify(userId, tripId);
+    if (!modifyCheck.can_modify) {
       throw new ForbiddenException('Only trip creator can view invitations');
     }
 
@@ -488,7 +491,8 @@ export class MembersService {
     }
 
     // Verify user is the trip creator
-    if (!canModifyTrip(userId, invitation.trip)) {
+    const modifyCheck = await this.permissionClient.checkTripModify(userId, invitation.tripId);
+    if (!modifyCheck.can_modify) {
       throw new ForbiddenException('Only trip creator can cancel invitations');
     }
 
@@ -553,7 +557,8 @@ export class MembersService {
       throw new NotFoundException('Trip not found');
     }
 
-    if (!canModifyTrip(userId, trip)) {
+    const modifyCheck = await this.permissionClient.checkTripModify(userId, tripId);
+    if (!modifyCheck.can_modify) {
       throw new ForbiddenException(
         'Only the trip creator can add members',
       );
@@ -598,7 +603,8 @@ export class MembersService {
       throw new NotFoundException('Member not found');
     }
 
-    if (!canModifyTrip(userId, member.trip)) {
+    const modifyCheck = await this.permissionClient.checkTripModify(userId, member.tripId);
+    if (!modifyCheck.can_modify) {
       throw new ForbiddenException(
         'Only the trip creator can update members',
       );
@@ -624,7 +630,8 @@ export class MembersService {
       throw new NotFoundException('Member not found');
     }
 
-    if (!canModifyTrip(userId, member.trip)) {
+    const modifyCheck = await this.permissionClient.checkTripModify(userId, member.tripId);
+    if (!modifyCheck.can_modify) {
       throw new ForbiddenException(
         'Only the trip creator can delete members',
       );

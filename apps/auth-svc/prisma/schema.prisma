@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client-auth"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String              @id @default(uuid())
+  email         String              @unique
+  password      String
+  name          String
+  avatar        String?
+  role          UserRole            @default(USER)
+  fcmToken      String?             @map("fcm_token")
+  emailVerified Boolean             @default(false) @map("email_verified")
+  verifiedAt    DateTime?           @map("verified_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime @map("expires_at")
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([code])
+  @@map("email_verifications")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}

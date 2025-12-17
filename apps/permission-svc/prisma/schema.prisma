@@ -1,0 +1,46 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../../../node_modules/.prisma/client-permission"
+  binaryTargets = ["native", "darwin", "darwin-arm64"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Trip {
+  id          String       @id @default(uuid())
+  name        String
+  ownerId     String
+  description String?
+  location    String
+  startDate   DateTime
+  endDate     DateTime
+  status      TripStatus   @default(UPCOMING)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  members     TripMember[]
+
+  @@map("trips")
+}
+
+model TripMember {
+  id        String   @id @default(uuid())
+  tripId    String
+  userId    String?
+  name      String
+  email     String?
+  phone     String?
+  isPaid    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("trip_members")
+}
+
+enum TripStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+}

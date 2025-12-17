@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Travel Expense Planner</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #4F46E5;
+    }
+    h1 {
+      color: #4F46E5;
+      margin: 0;
+      font-size: 28px;
+    }
+    .content {
+      padding: 30px 0;
+    }
+    .welcome-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      border-radius: 10px;
+      margin: 25px 0;
+    }
+    .welcome-box h2 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .features {
+      background-color: #F3F4F6;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+    .feature-item {
+      padding: 10px 0;
+    }
+    .feature-item::before {
+      content: "✓ ";
+      color: #10B981;
+      font-weight: bold;
+      font-size: 20px;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 30px;
+      background-color: #4F46E5;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    .footer {
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid #e5e5e5;
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>✈️ Travel Expense Planner</h1>
+    </div>
+    
+    <div class="content">
+      <div class="welcome-box">
+        <h2>Welcome, {{NAME}}! 🎉</h2>
+        <p>Your account has been successfully created!</p>
+      </div>
+      
+      <p>We're excited to have you join Travel Expense Planner. Now you can easily manage your travel expenses and split costs with your travel companions.</p>
+      
+      <div class="features">
+        <h3>What you can do:</h3>
+        <div class="feature-item">Create and manage trips</div>
+        <div class="feature-item">Track expenses and receipts</div>
+        <div class="feature-item">Split costs with travel companions</div>
+        <div class="feature-item">View detailed settlement reports</div>
+        <div class="feature-item">Plan itineraries together</div>
+      </div>
+      
+      <p>Ready to start planning your next adventure?</p>
+      
+      <center>
+        <a href="#" class="button">Get Started</a>
+      </center>
+      
+      <p>If you have any questions or need assistance, feel free to reach out to our support team.</p>
+    </div>
+    
+    <div class="footer">
+      <p>Happy travels! 🌍</p>
+      <p>The Travel Expense Planner Team</p>
+    </div>
+  </div>
+</body>
+</html>

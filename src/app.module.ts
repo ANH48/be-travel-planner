@@ -14,6 +14,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import { VerificationModule } from './verification/verification.module';
 import { EmailModule } from './email/email.module';
+import { GrpcClientsModule } from './grpc-clients/grpc-clients.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { EmailModule } from './email/email.module';
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    GrpcClientsModule,
     FirebaseModule,
     AuthModule,
     UsersModule,

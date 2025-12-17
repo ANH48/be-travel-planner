@@ -2,11 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTripDto, UpdateTripDto } from './dto/trip.dto';
 import { TripStatus } from '@prisma/client';
-import { canAccessTrip, canModifyTrip } from '../common/helpers/trip-access.helper';
+import { PermissionGrpcClient } from '../grpc-clients/permission-grpc.client';
 
 @Injectable()
 export class TripsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private permissionClient: PermissionGrpcClient,
+  ) {}
 
   private calculateTripStatus(startDate: Date, endDate: Date): TripStatus {
     const now = new Date();
@@ -178,12 +181,14 @@ export class TripsService {
       throw new NotFoundException('Trip not found');
     }
 
-    // Check access (creator or member)
-    const { canAccess, role } = canAccessTrip(userId, userEmail, trip);
+    // Check access using Permission Service
+    const accessCheck = await this.permissionClient.checkTripAccess(userId, userEmail, id);
 
-    if (!canAccess) {
+    if (!accessCheck.can_access) {
       throw new ForbiddenException('You do not have access to this trip');
     }
+
+    const role = accessCheck.role;
 
     // Auto-update status if needed
     const calculatedStatus = this.calculateTripStatus(
@@ -207,8 +212,10 @@ export class TripsService {
   async update(id: string, userId: string, userEmail: string, dto: UpdateTripDto) {
     const trip = await this.findOne(id, userId, userEmail);
 
-    // Only creator can modify trip
-    if (!canModifyTrip(userId, trip)) {
+    // Only creator can modify trip using Permission Service
+    const modifyCheck = await this.permissionClient.checkTripModify(userId, id);
+
+    if (!modifyCheck.can_modify) {
       throw new ForbiddenException('Only trip creator can update trip details');
     }
 
@@ -255,8 +262,10 @@ export class TripsService {
   async remove(id: string, userId: string, userEmail: string) {
     const trip = await this.findOne(id, userId, userEmail);
 
-    // Only creator can delete trip
-    if (!canModifyTrip(userId, trip)) {
+    // Only creator can delete trip using Permission Service
+    const modifyCheck = await this.permissionClient.checkTripModify(userId, id);
+
+    if (!modifyCheck.can_modify) {
       throw new ForbiddenException('Only trip creator can delete trip');
     }
 

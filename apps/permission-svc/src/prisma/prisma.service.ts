@@ -1,0 +1,17 @@
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client-permission';
+
+@Injectable()
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
+  async onModuleInit() {
+    await this.$connect();
+    console.log('📦 Permission Service connected to database');
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
+  }
+}

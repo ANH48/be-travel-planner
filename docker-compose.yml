@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # Auth Database
+  auth-db:
+    image: postgres:16-alpine
+    container_name: travel-planner-auth-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    networks:
+      - travel-planner-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Trip Database (existing database)
+  trip-db:
+    image: postgres:16-alpine
+    container_name: travel-planner-trip-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trip_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - trip_db_data:/var/lib/postgresql/data
+    networks:
+      - travel-planner-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: travel-planner-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - travel-planner-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-svc/Dockerfile
+    container_name: travel-planner-auth-service
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@auth-db:5432/auth_db
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      JWT_EXPIRES_IN: 7d
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+    ports:
+      - "50051:50051"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    networks:
+      - travel-planner-network
+    restart: unless-stopped
+
+  # Permission Service
+  permission-service:
+    build:
+      context: .
+      dockerfile: apps/permission-svc/Dockerfile
+    container_name: travel-planner-permission-service
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@trip-db:5432/trip_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "50052:50052"
+    depends_on:
+      trip-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - travel-planner-network
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+    container_name: travel-planner-api-gateway
+    environment:
+      PORT: 3000
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      JWT_EXPIRES_IN: 7d
+      AUTH_SERVICE_URL: auth-service:50051
+      PERMISSION_SERVICE_URL: permission-service:50052
+    ports:
+      - "3001:3000"
+    depends_on:
+      - auth-service
+      - permission-service
+    networks:
+      - travel-planner-network
+    restart: unless-stopped
+
+networks:
+  travel-planner-network:
+    driver: bridge
+
+volumes:
+  auth_db_data:
+  trip_db_data:
+  redis_data:
