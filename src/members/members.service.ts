@@ -138,6 +138,7 @@ export class MembersService {
           tripLocation: trip.location,
           invitationId: invitation.id,
           inviterName: trip.owner.name,
+          invitationStatus: 'PENDING',
         },
       );
 
@@ -239,6 +240,48 @@ export class MembersService {
       }),
     ]);
 
+    // Update the invitation notification in Firebase to mark it as accepted
+    try {
+      // Find the invitation notification
+      const invitationNotification = await this.prisma.notification.findFirst({
+        where: {
+          userId: user.id,
+          type: 'TRIP_INVITATION',
+          data: {
+            path: ['invitationId'],
+            equals: invitationId,
+          },
+        },
+      });
+
+      if (invitationNotification) {
+        // Update the notification data with the new status
+        const updatedData = {
+          ...(invitationNotification.data as any),
+          invitationStatus: 'ACCEPTED',
+        };
+
+        await this.prisma.notification.update({
+          where: { id: invitationNotification.id },
+          data: { data: updatedData },
+        });
+
+        // Also update in Firebase Realtime Database
+        await this.firebaseService.writeNotificationToDatabase(user.id, {
+          id: invitationNotification.id,
+          type: invitationNotification.type,
+          title: invitationNotification.title,
+          message: invitationNotification.message,
+          data: updatedData,
+          isRead: invitationNotification.isRead,
+          createdAt: invitationNotification.createdAt.getTime(),
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update invitation notification status:', error);
+      // Don't fail the whole request if notification update fails
+    }
+
     // Notify trip owner that member joined
     await this.notificationsService.createNotification(
       invitation.inviter.id,
@@ -338,6 +381,48 @@ export class MembersService {
       where: { id: invitationId },
       data: { status: 'REJECTED' },
     });
+
+    // Update the invitation notification in Firebase to mark it as rejected
+    try {
+      // Find the invitation notification
+      const invitationNotification = await this.prisma.notification.findFirst({
+        where: {
+          userId: user.id,
+          type: 'TRIP_INVITATION',
+          data: {
+            path: ['invitationId'],
+            equals: invitationId,
+          },
+        },
+      });
+
+      if (invitationNotification) {
+        // Update the notification data with the new status
+        const updatedData = {
+          ...(invitationNotification.data as any),
+          invitationStatus: 'REJECTED',
+        };
+
+        await this.prisma.notification.update({
+          where: { id: invitationNotification.id },
+          data: { data: updatedData },
+        });
+
+        // Also update in Firebase Realtime Database
+        await this.firebaseService.writeNotificationToDatabase(user.id, {
+          id: invitationNotification.id,
+          type: invitationNotification.type,
+          title: invitationNotification.title,
+          message: invitationNotification.message,
+          data: updatedData,
+          isRead: invitationNotification.isRead,
+          createdAt: invitationNotification.createdAt.getTime(),
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update invitation notification status:', error);
+      // Don't fail the whole request if notification update fails
+    }
 
     // Notify trip creator that invitation was rejected
     await this.notificationsService.createNotification(

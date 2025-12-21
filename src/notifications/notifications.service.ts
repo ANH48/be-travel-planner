@@ -48,7 +48,7 @@ export class NotificationsService {
   }
 
   async getUserNotifications(userId: string, unreadOnly = false) {
-    return this.prisma.notification.findMany({
+    const notifications = await this.prisma.notification.findMany({
       where: {
         userId,
         ...(unreadOnly && { isRead: false }),
@@ -57,6 +57,34 @@ export class NotificationsService {
         createdAt: 'desc',
       },
     });
+
+    // Enrich notifications with invitation status if type is TRIP_INVITATION
+    const enrichedNotifications = await Promise.all(
+      notifications.map(async (notification) => {
+        if (notification.type === 'TRIP_INVITATION' && notification.data) {
+          const data = notification.data as any;
+          if (data.invitationId) {
+            // Fetch the current invitation status
+            const invitation = await this.prisma.memberInvitation.findUnique({
+              where: { id: data.invitationId },
+              select: { status: true },
+            });
+
+            // Add invitation status to data
+            return {
+              ...notification,
+              data: {
+                ...data,
+                invitationStatus: invitation?.status || 'UNKNOWN',
+              },
+            };
+          }
+        }
+        return notification;
+      }),
+    );
+
+    return enrichedNotifications;
   }
 
   async markAsRead(id: string, userId: string) {
