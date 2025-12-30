@@ -29,7 +29,7 @@ export class EmailService {
       if (error) {
         this.logger.error('Email service connection error:', error);
       } else {
-        this.logger.log('Email service is ready to send messages');
+        this.logger.log('Email service is ready to send messages ');
       }
     });
   }
