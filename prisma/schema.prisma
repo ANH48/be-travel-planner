@@ -65,6 +65,7 @@ model TripMember {
   createdExpenses   Expense[]      @relation("ExpenseCreator")
   expenseSplits     ExpenseSplit[]
   createdItinerary  ItineraryItem[] @relation("ItineraryCreator")
+  uploadedImages  ItineraryImage[] @relation("ImageUploader")
   settlements       Settlement[]
   createdAt         DateTime       @default(now()) @map("created_at")
 
@@ -140,6 +141,7 @@ model ItineraryItem {
   location    String?
   category    String?
   description String?
+  images      ItineraryImage[]  // Add this line
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
@@ -147,6 +149,24 @@ model ItineraryItem {
   @@index([date])
   @@index([createdById])
   @@map("itinerary_items")
+}
+
+model ItineraryImage {
+  id              String        @id @default(uuid())
+  itineraryId     String        @map("itinerary_id")
+  itinerary       ItineraryItem @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  imageUrl        String        @map("image_url")
+  imageKitFileId  String        @map("imagekit_file_id")
+  caption         String?
+  displayOrder    Int           @default(0) @map("display_order")
+  uploadedById    String        @map("uploaded_by_id")
+  uploadedBy      TripMember    @relation("ImageUploader", fields: [uploadedById], references: [id])
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@index([itineraryId])
+  @@index([uploadedById])
+  @@map("itinerary_images")
 }
 
 enum TripStatus {

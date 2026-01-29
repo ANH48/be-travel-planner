@@ -12,12 +12,18 @@ import {
   getUserMemberId,
   canModifyItinerary,
 } from '../common/helpers/trip-access.helper';
+import { ImageKitService } from '../imagekit/imagekit.service';
+import {
+  CreateItineraryImageDto,
+  UpdateItineraryImageDto,
+} from './dto/itinerary-image.dto';
 
 @Injectable()
 export class ItineraryService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private imageKitService: ImageKitService,
   ) {}
 
   async create(
@@ -230,10 +236,248 @@ export class ItineraryService {
       throw new ForbiddenException('You can only delete itinerary items you created');
     }
 
+    // Delete images from ImageKit first
+    await this.deleteAllImages(id);
+
     await this.prisma.itineraryItem.delete({
       where: { id },
     });
 
     return { message: 'Itinerary item deleted successfully' };
+  }
+
+  /**
+   * Delete all images for an itinerary (called before itinerary delete)
+   * Note: Prisma cascade handles DB cleanup; this cleans ImageKit
+   */
+  async deleteAllImages(itineraryId: string): Promise<void> {
+    const images = await this.prisma.itineraryImage.findMany({
+      where: { itineraryId },
+      select: { imageKitFileId: true },
+    });
+
+    // Delete from ImageKit in parallel
+    await Promise.all(
+      images.map((img) => this.imageKitService.deleteFile(img.imageKitFileId)),
+    );
+  }
+
+  /**
+   * Add image to itinerary item
+   */
+  async addImage(
+    itineraryId: string,
+    userId: string,
+    userEmail: string,
+    dto: CreateItineraryImageDto,
+  ) {
+    const itinerary = await this.prisma.itineraryItem.findUnique({
+      where: { id: itineraryId },
+      include: {
+        trip: { include: { members: true } },
+      },
+    });
+
+    if (!itinerary) {
+      throw new NotFoundException('Itinerary item not found');
+    }
+
+    // Check trip access
+    const { canAccess } = canAccessTrip(userId, userEmail, itinerary.trip);
+    if (!canAccess) {
+      throw new ForbiddenException('You do not have access to this trip');
+    }
+
+    // Check modify permission
+    const canModify = canModifyItinerary(
+      userId,
+      userEmail,
+      itinerary.trip,
+      itinerary.createdById,
+    );
+    if (!canModify) {
+      throw new ForbiddenException(
+        'Only the trip owner or itinerary creator can add images',
+      );
+    }
+
+    // Get uploader's member ID
+    const uploadedById = getUserMemberId(userEmail, itinerary.trip.members);
+    if (!uploadedById) {
+      throw new BadRequestException('You must be a trip member to add images');
+    }
+
+    // Enforce 10-image limit per itinerary
+    const MAX_IMAGES_PER_ITINERARY = 10;
+    const currentImageCount = await this.prisma.itineraryImage.count({
+      where: { itineraryId },
+    });
+    if (currentImageCount >= MAX_IMAGES_PER_ITINERARY) {
+      throw new BadRequestException(
+        `Maximum ${MAX_IMAGES_PER_ITINERARY} images allowed per itinerary item`,
+      );
+    }
+
+    // Get next display order if not provided
+    let displayOrder = dto.displayOrder;
+    if (displayOrder === undefined) {
+      const maxOrder = await this.prisma.itineraryImage.aggregate({
+        where: { itineraryId },
+        _max: { displayOrder: true },
+      });
+      displayOrder = (maxOrder._max.displayOrder ?? -1) + 1;
+    }
+
+    return this.prisma.itineraryImage.create({
+      data: {
+        itineraryId,
+        imageUrl: dto.imageUrl,
+        imageKitFileId: dto.imageKitFileId,
+        caption: dto.caption,
+        displayOrder,
+        uploadedById,
+      },
+    });
+  }
+
+  /**
+   * Get all images for an itinerary item
+   */
+  async getImages(itineraryId: string, userId: string, userEmail: string) {
+    const itinerary = await this.prisma.itineraryItem.findUnique({
+      where: { id: itineraryId },
+      include: {
+        trip: { include: { members: true } },
+      },
+    });
+
+    if (!itinerary) {
+      throw new NotFoundException('Itinerary item not found');
+    }
+
+    // Check trip access (any member can view)
+    const { canAccess } = canAccessTrip(userId, userEmail, itinerary.trip);
+    if (!canAccess) {
+      throw new ForbiddenException('You do not have access to this trip');
+    }
+
+    return this.prisma.itineraryImage.findMany({
+      where: { itineraryId },
+      orderBy: { displayOrder: 'asc' },
+      include: {
+        uploadedBy: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Update image caption or order
+   */
+  async updateImage(
+    imageId: string,
+    userId: string,
+    userEmail: string,
+    dto: UpdateItineraryImageDto,
+  ) {
+    const image = await this.prisma.itineraryImage.findUnique({
+      where: { id: imageId },
+      include: {
+        itinerary: {
+          include: {
+            trip: { include: { members: true } },
+          },
+        },
+      },
+    });
+
+    if (!image) {
+      throw new NotFoundException('Image not found');
+    }
+
+    // Check trip access
+    const { canAccess } = canAccessTrip(
+      userId,
+      userEmail,
+      image.itinerary.trip,
+    );
+    if (!canAccess) {
+      throw new ForbiddenException('You do not have access to this trip');
+    }
+
+    // Check modify permission
+    const canModify = canModifyItinerary(
+      userId,
+      userEmail,
+      image.itinerary.trip,
+      image.itinerary.createdById,
+    );
+    if (!canModify) {
+      throw new ForbiddenException(
+        'Only the trip owner or itinerary creator can update images',
+      );
+    }
+
+    return this.prisma.itineraryImage.update({
+      where: { id: imageId },
+      data: {
+        ...(dto.caption !== undefined && { caption: dto.caption }),
+        ...(dto.displayOrder !== undefined && { displayOrder: dto.displayOrder }),
+      },
+    });
+  }
+
+  /**
+   * Delete image from DB and ImageKit
+   */
+  async deleteImage(imageId: string, userId: string, userEmail: string) {
+    const image = await this.prisma.itineraryImage.findUnique({
+      where: { id: imageId },
+      include: {
+        itinerary: {
+          include: {
+            trip: { include: { members: true } },
+          },
+        },
+      },
+    });
+
+    if (!image) {
+      throw new NotFoundException('Image not found');
+    }
+
+    // Check trip access
+    const { canAccess } = canAccessTrip(
+      userId,
+      userEmail,
+      image.itinerary.trip,
+    );
+    if (!canAccess) {
+      throw new ForbiddenException('You do not have access to this trip');
+    }
+
+    // Check modify permission
+    const canModify = canModifyItinerary(
+      userId,
+      userEmail,
+      image.itinerary.trip,
+      image.itinerary.createdById,
+    );
+    if (!canModify) {
+      throw new ForbiddenException(
+        'Only the trip owner or itinerary creator can delete images',
+      );
+    }
+
+    // Delete from ImageKit (soft fail)
+    await this.imageKitService.deleteFile(image.imageKitFileId);
+
+    // Delete from database
+    await this.prisma.itineraryImage.delete({
+      where: { id: imageId },
+    });
+
+    return { message: 'Image deleted successfully' };
   }
 }

@@ -4,9 +4,11 @@ import { ItineraryService } from './itinerary.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
+import { ItineraryImageController } from './itinerary-image.controller';
+
 @Module({
   imports: [PrismaModule, NotificationsModule],
-  controllers: [ItineraryController],
+  controllers: [ItineraryController, ItineraryImageController],
   providers: [ItineraryService],
   exports: [ItineraryService],
 })

@@ -14,6 +14,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import { VerificationModule } from './verification/verification.module';
 import { EmailModule } from './email/email.module';
+import { ImageKitModule } from './imagekit/imagekit.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { EmailModule } from './email/email.module';
     NotificationsModule,
     VerificationModule,
     EmailModule,
+    ImageKitModule,
   ],
 })
 export class AppModule {}
